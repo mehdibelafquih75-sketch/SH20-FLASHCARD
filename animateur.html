@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verlordle — Animateur</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;color:#fff;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:28px;font-weight:700;text-align:center;margin-bottom:4px;letter-spacing:-0.5px}
+.sub{text-align:center;color:#AFA9EC;font-size:14px;margin-bottom:2rem}
+.panel{background:#16213e;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;border:1px solid #0f3460}
+.panel-title{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#AFA9EC;margin-bottom:1rem;font-weight:500}
+.question-display{font-size:22px;font-weight:600;text-align:center;margin-bottom:1rem;line-height:1.4;color:#fff}
+.hint-display{text-align:center;font-size:15px;color:#AFA9EC;margin-bottom:1.5rem}
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem}
+.answer-card{padding:1rem 1.25rem;border-radius:12px;font-size:16px;font-weight:600;text-align:center;border:2px solid transparent}
+.answer-card.a{background:#e21b3c;border-color:#ff375f}
+.answer-card.b{background:#1368ce;border-color:#4d8fe8}
+.answer-card.c{background:#26890c;border-color:#45c517}
+.answer-card.d{background:#d89e00;border-color:#ffc107}
+.timer-bar-wrap{height:8px;background:#0f3460;border-radius:4px;margin-bottom:1rem;overflow:hidden}
+.timer-bar{height:8px;background:#7F77DD;border-radius:4px;transition:width 0.1s linear}
+.timer-text{text-align:center;font-size:32px;font-weight:700;color:#7F77DD;margin-bottom:1rem}
+.btn{padding:10px 28px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.15s}
+.btn:hover{opacity:0.85}
+.btn-primary{background:#7F77DD;color:#fff}
+.btn-danger{background:#e21b3c;color:#fff}
+.btn-success{background:#26890c;color:#fff}
+.btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.scoreboard{display:flex;flex-direction:column;gap:8px}
+.score-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0f3460;border-radius:10px}
+.rank{width:28px;height:28px;border-radius:50%;background:#7F77DD;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.rank.gold{background:#d89e00}
+.rank.silver{background:#888780}
+.rank.bronze{background:#cd7f32}
+.player-name{flex:1;font-weight:500;font-size:15px}
+.player-score{font-size:18px;font-weight:700;color:#7F77DD}
+.answer-count{font-size:12px;color:#AFA9EC;margin-left:4px}
+.waiting{text-align:center;padding:2rem;color:#AFA9EC;font-size:15px}
+.q-counter{text-align:center;font-size:13px;color:#AFA9EC;margin-bottom:8px}
+.reveal-answer{text-align:center;padding:1rem;background:#26890c;border-radius:12px;font-size:20px;font-weight:700;margin-bottom:1rem}
+.stats-row{display:flex;gap:12px;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
+.stat-card{background:#0f3460;border-radius:10px;padding:10px 20px;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:#7F77DD}
+.stat-label{font-size:12px;color:#AFA9EC;margin-top:2px}
+.phase-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:1rem}
+.phase-badge.waiting{background:#0f3460;color:#AFA9EC}
+.phase-badge.playing{background:#26890c;color:#fff}
+.phase-badge.reveal{background:#d89e00;color:#1a1a2e}
+.phase-badge.finished{background:#7F77DD;color:#fff}
+.pin-display{font-size:48px;font-weight:800;letter-spacing:8px;text-align:center;color:#7F77DD;margin:1rem 0}
+.join-url{text-align:center;font-size:13px;color:#AFA9EC;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Verlordle — Animateur</h1>
+  <div class="sub">Tableau de bord de l'animateur</div>
+
+  <div class="panel" id="lobby-panel">
+    <div class="panel-title">Salle d'attente</div>
+    <div class="pin-display" id="pin-display">...</div>
+    <div class="join-url" id="join-url">Chargement...</div>
+    <div style="margin:1.5rem 0;text-align:center;color:#AFA9EC;font-size:14px" id="player-count">0 joueur(s) connecté(s)</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="startGame()">Lancer la partie</button>
+    </div>
+  </div>
+
+  <div class="panel" id="game-panel" style="display:none">
+    <div class="q-counter" id="q-counter"></div>
+    <div class="question-display" id="q-display"></div>
+    <div class="hint-display" id="q-hint"></div>
+    <div class="timer-text" id="timer-text">20</div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>
+    <div class="answers-grid" id="answers-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-danger" onclick="revealAnswer()">Révéler la réponse</button>
+    </div>
+  </div>
+
+  <div class="panel" id="reveal-panel" style="display:none">
+    <div class="reveal-answer" id="reveal-text"></div>
+    <div class="stats-row" id="stats-row"></div>
+    <div class="scoreboard" id="scoreboard-reveal"></div>
+    <div class="btn-row" style="margin-top:1rem">
+      <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()">Question suivante →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="final-panel" style="display:none">
+    <div class="panel-title">Classement final</div>
+    <div class="scoreboard" id="scoreboard-final"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Joueurs connectés</div>
+    <div class="scoreboard" id="players-live"><div class="waiting">En attente de joueurs...</div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD0mxzLQVtdr2afuz7ElbPkXSlLmb-UvBs",
+  authDomain: "sh20-7e375.firebaseapp.com",
+  projectId: "sh20-7e375",
+  storageBucket: "sh20-7e375.firebasestorage.app",
+  messagingSenderId: "952318587808",
+  appId: "1:952318587808:web:bded62dfb6f4eea490eac5",
+  databaseURL: "https://sh20-7e375-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+const WORDS = [
+  {word:"MEUF",hint:"Désigne une femme, une fille",origin:"FEMME",context:"L'un des mots verlan les plus répandus — passé dans le français courant."},
+  {word:"OUF",hint:"Quelque chose d'intense, d'incroyable",origin:"FOU",context:"'C'est ouf !' — tellement lexicalisé qu'il figure dans certains dictionnaires."},
+  {word:"TEUF",hint:"Une soirée, une fête",origin:"FETE",context:"Utilisé bien au-delà des cités, symbole de la diffusion grand public du verlan."},
+  {word:"RELOU",hint:"Quelqu'un de pénible, une situation pesante",origin:"LOURD",context:"'T'es relou' — intégré au français standard, y compris chez les adultes."},
+  {word:"KEUF",hint:"Un policier, en argot",origin:"FLIC",context:"Créé pour parler de la police sans être compris : la fonction cryptique du verlan."},
+  {word:"REUM",hint:"La mère, la maman",origin:"MERE",context:"Avec REUP (père), fait partie du vocabulaire familial verlanisé des cités."},
+  {word:"CIMER",hint:"Pour remercier quelqu'un",origin:"MERCI",context:"Un des rares mots verlan positifs — sa diffusion illustre la récupération grand public."},
+  {word:"VENER",hint:"Être en colère, irrité",origin:"NERVE",context:"'Je suis trop véner' — verlan émotionnel très courant."},
+  {word:"REUP",hint:"Le père, le papa",origin:"PERE",context:"Pendant de REUM — verlanisation systématique du vocabulaire familial."},
+  {word:"KEUM",hint:"Un garçon, un type",origin:"MEC",context:"Pendant masculin de MEUF — l'un des binômes verlan les plus utilisés."},
+  {word:"REUBEU",hint:"Désigne une personne d'origine arabe",origin:"ARABE",context:"Terme identitaire fort — illustre comment le verlan construit une appartenance communautaire."},
+  {word:"CHELOU",hint:"Quelque chose de bizarre, de suspect",origin:"LOUCHE",context:"'C'est chelou' — utilisé par toutes les générations, exemple parfait de lexicalisation."},
+  {word:"CHANME",hint:"Quelque chose de très bien, d'impressionnant",origin:"MECHAN",context:"'Méchant' devient positif en verlan, comme 'bad' en anglais argotique."},
+  {word:"CAILLRA",hint:"Les jeunes de la rue, la 'racaille'",origin:"RACAILLE",context:"Mot emblématique du lexique des cités, chargé politiquement."},
+  {word:"LAISSE",hint:"'Laisse béton' = laisse tomber. Quel mot cache BÉTON ?",origin:"SALLE",context:"Popularisé par Renaud en 1977, l'un des premiers verlan médiatisés."},
+];
+
+const COLORS = ['a','b','c','d'];
+const SHAPES = ['▲','■','●','✦'];
+const MAX_TIME = 20;
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const PIN = Math.floor(100000 + Math.random() * 900000).toString();
+const gameRef = ref(db, `games/${PIN}`);
+
+let currentQ = 0;
+let timerInterval = null;
+let timeLeft = MAX_TIME;
+let players = {};
+
+async function init() {
+  await set(gameRef, {
+    pin: PIN,
+    phase: 'lobby',
+    currentQ: -1,
+    questionStart: 0,
+    players: {}
+  });
+
+  document.getElementById('pin-display').textContent = PIN;
+  const playerUrl = `${location.origin}${location.pathname.replace('animateur.html','joueur.html')}?pin=${PIN}`;
+  document.getElementById('join-url').innerHTML = `Joueurs → <strong>${playerUrl}</strong>`;
+
+  onValue(ref(db, `games/${PIN}/players`), snap => {
+    players = snap.val() || {};
+    updatePlayersLive();
+    const count = Object.keys(players).length;
+    document.getElementById('player-count').textContent = `${count} joueur(s) connecté(s)`;
+  });
+}
+
+function updatePlayersLive() {
+  const el = document.getElementById('players-live');
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  if (sorted.length === 0) { el.innerHTML = '<div class="waiting">En attente de joueurs...</div>'; return; }
+  el.innerHTML = sorted.map(([id, p], i) => `
+    <div class="score-row">
+      <div class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+      <div class="player-name">${p.name || 'Anonyme'}</div>
+      <div class="player-score">${p.score || 0} pts</div>
+    </div>`).join('');
+}
+
+window.startGame = async function() {
+  if (Object.keys(players).length === 0) { alert('Aucun joueur connecté !'); return; }
+  currentQ = 0;
+  await showQuestion();
+}
+
+async function showQuestion() {
+  const q = WORDS[currentQ];
+  const opts = generateOptions(q.word, currentQ);
+
+  document.getElementById('lobby-panel').style.display = 'none';
+  document.getElementById('reveal-panel').style.display = 'none';
+  document.getElementById('final-panel').style.display = 'none';
+  document.getElementById('game-panel').style.display = 'block';
+
+  document.getElementById('q-counter').textContent = `Question ${currentQ+1} / ${WORDS.length}`;
+  document.getElementById('q-display').textContent = q.hint;
+  document.getElementById('q-hint').textContent = `${q.word.length} lettre${q.word.length>1?'s':''} · Quel est le mot verlan ?`;
+
+  const grid = document.getElementById('answers-grid');
+  grid.innerHTML = opts.map((o,i) => `
+    <div class="answer-card ${COLORS[i]}">${SHAPES[i]} ${o}</div>`).join('');
+
+  const correctIdx = opts.indexOf(q.word);
+  const questionStart = Date.now();
+
+  await update(gameRef, {
+    phase: 'playing',
+    currentQ,
+    questionStart,
+    currentOptions: opts,
+    correctAnswer: q.word,
+    correctIdx
+  });
+
+  await update(ref(db, `games/${PIN}/answers`), null);
+  await set(ref(db, `games/${PIN}/answers`), {});
+
+  startTimer(questionStart);
+}
+
+function generateOptions(correct, qIdx) {
+  const others = WORDS.filter((w,i) => i !== qIdx).map(w => w.word);
+  const shuffled = others.sort(() => Math.random()-0.5).slice(0,3);
+  const all = [...shuffled, correct].sort(() => Math.random()-0.5);
+  return all;
+}
+
+function startTimer(questionStart) {
+  clearInterval(timerInterval);
+  timeLeft = MAX_TIME;
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - questionStart) / 1000;
+    timeLeft = Math.max(0, MAX_TIME - elapsed);
+    const pct = (timeLeft / MAX_TIME) * 100;
+    document.getElementById('timer-bar').style.width = pct + '%';
+    document.getElementById('timer-text').textContent = Math.ceil(timeLeft);
+    if (timeLeft <= 0) { clearInterval(timerInterval); revealAnswer(); }
+  }, 100);
+}
+
+window.revealAnswer = async function() {
+  clearInterval(timerInterval);
+  const q = WORDS[currentQ];
+
+  const answersSnap = await get(ref(db, `games/${PIN}/answers`));
+  const answers = answersSnap.val() || {};
+
+  const questionStartSnap = await get(ref(db, `games/${PIN}/questionStart`));
+  const questionStart = questionStartSnap.val() || Date.now();
+
+  let correctCount = 0;
+  const updates = {};
+  for (const [pid, ans] of Object.entries(answers)) {
+    if (ans.answer === q.word) {
+      correctCount++;
+      const elapsed = Math.min((ans.timestamp - questionStart) / 1000, MAX_TIME);
+      const pts = Math.round(1000 * (1 - elapsed / MAX_TIME * 0.7));
+      const prev = players[pid]?.score || 0;
+      updates[`games/${PIN}/players/${pid}/score`] = prev + pts;
+      updates[`games/${PIN}/players/${pid}/lastPts`] = pts;
+    } else {
+      updates[`games/${PIN}/players/${pid}/lastPts`] = 0;
+    }
+  }
+  await update(ref(db), updates);
+  await update(gameRef, { phase: 'reveal' });
+
+  const playersSnap = await get(ref(db, `games/${PIN}/players`));
+  players = playersSnap.val() || {};
+
+  document.getElementById('game-panel').style.display = 'none';
+  document.getElementById('reveal-panel').style.display = 'block';
+  document.getElementById('reveal-text').textContent = `✓ ${q.word} = verlan de ${q.origin}`;
+
+  const total = Object.keys(players).length;
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${correctCount}</div><div class="stat-label">Bonnes réponses</div></div>
+    <div class="stat-card"><div class="stat-num">${total - correctCount}</div><div class="stat-label">Mauvaises réponses</div></div>
+    <div class="stat-card"><div class="stat-num">${total > 0 ? Math.round(correctCount/total*100) : 0}%</div><div class="stat-label">Taux de réussite</div></div>`;
+
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  document.getElementById('scoreboard-reveal').innerHTML = sorted.map(([id, p], i) => `
+    <div class="score-row">
+      <div class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+      <div class="player-name">${p.name || 'Anonyme'}</div>
+      <div class="player-score">${p.score || 0} pts</div>
+      ${p.lastPts > 0 ? `<div style="color:#45c517;font-size:13px;font-weight:600">+${p.lastPts}</div>` : '<div style="color:#e21b3c;font-size:13px">+0</div>'}
+    </div>`).join('');
+
+  const nextBtn = document.getElementById('next-btn');
+  if (currentQ >= WORDS.length - 1) {
+    nextBtn.textContent = 'Voir le classement final';
+  } else {
+    nextBtn.textContent = `Question suivante (${currentQ+2}/${WORDS.length}) →`;
+  }
+}
+
+window.nextQuestion = async function() {
+  currentQ++;
+  if (currentQ >= WORDS.length) {
+    showFinal();
+  } else {
+    await showQuestion();
+  }
+}
+
+async function showFinal() {
+  await update(gameRef, { phase: 'finished' });
+  document.getElementById('reveal-panel').style.display = 'none';
+  document.getElementById('final-panel').style.display = 'block';
+
+  const playersSnap = await get(ref(db, `games/${PIN}/players`));
+  players = playersSnap.val() || {};
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  document.getElementById('scoreboard-final').innerHTML = sorted.map(([id, p], i) => `
+    <div class="score-row">
+      <div class="rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="player-name">${p.name || 'Anonyme'}</div>
+      <div class="player-score">${p.score || 0} pts</div>
+    </div>`).join('');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verlordle — Joueur</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem 1rem}
+.wrap{width:100%;max-width:420px}
+h1{font-size:24px;font-weight:700;text-align:center;margin-bottom:4px}
+.sub{text-align:center;color:#AFA9EC;font-size:13px;margin-bottom:2rem}
+.panel{background:#16213e;border-radius:16px;padding:1.5rem;border:1px solid #0f3460}
+input[type=text]{width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid #0f3460;background:#0f3460;color:#fff;font-size:16px;margin-bottom:12px;outline:none}
+input[type=text]:focus{border-color:#7F77DD}
+input[type=text]::placeholder{color:#888780}
+.btn{width:100%;padding:12px;border-radius:10px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:#7F77DD;color:#fff;transition:opacity 0.15s}
+.btn:hover{opacity:0.85}
+.btn:disabled{opacity:0.4;cursor:default}
+.waiting-msg{text-align:center;color:#AFA9EC;font-size:15px;padding:1rem 0;line-height:1.7}
+.waiting-name{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.hint-text{font-size:17px;font-weight:600;text-align:center;margin-bottom:6px;line-height:1.4;color:#fff}
+.hint-sub{text-align:center;font-size:13px;color:#AFA9EC;margin-bottom:1.5rem}
+.timer-bar-wrap{height:6px;background:#0f3460;border-radius:3px;margin-bottom:1.5rem;overflow:hidden}
+.timer-bar{height:6px;background:#7F77DD;border-radius:3px;transition:width 0.1s linear}
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer-btn{padding:1rem;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform 0.1s,opacity 0.15s;min-height:70px;text-align:center;line-height:1.3}
+.answer-btn:active{transform:scale(0.96)}
+.answer-btn.a{background:#e21b3c;color:#fff}
+.answer-btn.b{background:#1368ce;color:#fff}
+.answer-btn.c{background:#26890c;color:#fff}
+.answer-btn.d{background:#d89e00;color:#1a1a2e}
+.answer-btn:disabled{opacity:0.5;cursor:default}
+.answer-btn.selected{transform:scale(0.94);filter:brightness(0.8)}
+.result-correct{text-align:center;padding:1.5rem 1rem;background:#26890c;border-radius:12px;margin-bottom:1rem}
+.result-wrong{text-align:center;padding:1.5rem 1rem;background:#e21b3c;border-radius:12px;margin-bottom:1rem}
+.result-icon{font-size:36px;margin-bottom:6px}
+.result-pts{font-size:28px;font-weight:800;margin-bottom:4px}
+.result-msg{font-size:14px;opacity:0.85}
+.score-display{text-align:center;padding:1rem;background:#0f3460;border-radius:10px}
+.score-label{font-size:12px;color:#AFA9EC;text-transform:uppercase;letter-spacing:1px}
+.score-num{font-size:36px;font-weight:800;color:#7F77DD}
+.q-counter{text-align:center;font-size:12px;color:#AFA9EC;margin-bottom:1rem}
+.final-rank{font-size:48px;text-align:center;margin-bottom:8px}
+.final-score{font-size:32px;font-weight:800;color:#7F77DD;text-align:center;margin-bottom:8px}
+.final-msg{text-align:center;color:#AFA9EC;font-size:14px;line-height:1.6}
+.context-text{font-size:13px;color:#AFA9EC;text-align:center;margin-top:8px;line-height:1.5;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Verlordle</h1>
+  <div class="sub">Mode Kahoot — Sois le plus rapide !</div>
+  <div class="panel" id="join-panel">
+    <input type="text" id="pin-input" placeholder="Code PIN (6 chiffres)" maxlength="6" inputmode="numeric">
+    <input type="text" id="name-input" placeholder="Ton prénom" maxlength="20">
+    <button class="btn" onclick="joinGame()">Rejoindre</button>
+    <div style="margin-top:10px;font-size:13px;color:#e21b3c;text-align:center" id="error-msg"></div>
+  </div>
+
+  <div class="panel" id="lobby-panel" style="display:none">
+    <div class="waiting-name" id="lobby-name"></div>
+    <div class="waiting-msg">Tu es dans la salle !<br>En attente du lancement par l'animateur...</div>
+    <div style="margin-top:1rem" class="score-display">
+      <div class="score-label">Ton score</div>
+      <div class="score-num" id="live-score">0</div>
+    </div>
+  </div>
+
+  <div class="panel" id="game-panel" style="display:none">
+    <div class="q-counter" id="q-counter-p"></div>
+    <div class="hint-text" id="hint-text-p"></div>
+    <div class="hint-sub" id="hint-sub-p"></div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar-p" style="width:100%"></div></div>
+    <div class="answers-grid" id="answers-grid-p"></div>
+  </div>
+
+  <div class="panel" id="answered-panel" style="display:none">
+    <div id="answer-feedback"></div>
+    <div class="score-display">
+      <div class="score-label">Score total</div>
+      <div class="score-num" id="total-score-display">0</div>
+    </div>
+    <div class="context-text" id="context-text"></div>
+  </div>
+
+  <div class="panel" id="final-panel" style="display:none">
+    <div class="final-rank" id="final-rank"></div>
+    <div class="final-score" id="final-score"></div>
+    <div class="final-msg" id="final-msg"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD0mxzLQVtdr2afuz7ElbPkXSlLmb-UvBs",
+  authDomain: "sh20-7e375.firebaseapp.com",
+  projectId: "sh20-7e375",
+  storageBucket: "sh20-7e375.firebasestorage.app",
+  messagingSenderId: "952318587808",
+  appId: "1:952318587808:web:bded62dfb6f4eea490eac5",
+  databaseURL: "https://sh20-7e375-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+const SHAPES = ['▲','■','●','✦'];
+const COLORS = ['a','b','c','d'];
+const MAX_TIME = 20;
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const params = new URLSearchParams(location.search);
+const pinFromUrl = params.get('pin');
+if (pinFromUrl) document.getElementById('pin-input').value = pinFromUrl;
+
+let PIN = '', playerId = '', playerName = '', myScore = 0;
+let timerInterval = null;
+let hasAnswered = false;
+let currentOptions = [];
+let gameListener = null;
+
+window.joinGame = async function() {
+  PIN = document.getElementById('pin-input').value.trim();
+  playerName = document.getElementById('name-input').value.trim();
+  const err = document.getElementById('error-msg');
+  if (!PIN || PIN.length !== 6) { err.textContent = 'Entre un code PIN à 6 chiffres.'; return; }
+  if (!playerName) { err.textContent = 'Entre ton prénom.'; return; }
+
+  const gameSnap = await get(ref(db, `games/${PIN}`));
+  if (!gameSnap.exists()) { err.textContent = 'Partie introuvable. Vérifie le PIN.'; return; }
+
+  const phase = gameSnap.val().phase;
+  if (phase === 'finished') { err.textContent = 'Cette partie est terminée.'; return; }
+
+  playerId = 'p_' + Math.random().toString(36).substr(2, 9);
+  await set(ref(db, `games/${PIN}/players/${playerId}`), { name: playerName, score: 0, lastPts: 0 });
+
+  document.getElementById('join-panel').style.display = 'none';
+  document.getElementById('lobby-panel').style.display = 'block';
+  document.getElementById('lobby-name').textContent = playerName;
+
+  listenGame();
+}
+
+function listenGame() {
+  gameListener = onValue(ref(db, `games/${PIN}`), snap => {
+    const game = snap.val();
+    if (!game) return;
+
+    myScore = game.players?.[playerId]?.score || 0;
+    document.getElementById('live-score').textContent = myScore;
+
+    if (game.phase === 'lobby') {
+      showOnly('lobby-panel');
+    } else if (game.phase === 'playing') {
+      const opts = game.currentOptions || [];
+      const q = game.currentQ;
+      currentOptions = opts;
+      hasAnswered = false;
+      showQuestion(q, opts, game.questionStart);
+    } else if (game.phase === 'reveal') {
+      clearInterval(timerInterval);
+      const lastPts = game.players?.[playerId]?.lastPts || 0;
+      showReveal(lastPts, game.correctAnswer, game.currentQ);
+    } else if (game.phase === 'finished') {
+      clearInterval(timerInterval);
+      showFinal(game.players);
+    }
+  });
+}
+
+function showOnly(id) {
+  ['lobby-panel','game-panel','answered-panel','final-panel'].forEach(p =>
+    document.getElementById(p).style.display = p === id ? 'block' : 'none'
+  );
+}
+
+function showQuestion(qIdx, opts, questionStart) {
+  showOnly('game-panel');
+  const WORDS = [
+    {word:"MEUF",hint:"Désigne une femme, une fille",origin:"FEMME"},
+    {word:"OUF",hint:"Quelque chose d'intense, d'incroyable",origin:"FOU"},
+    {word:"TEUF",hint:"Une soirée, une fête",origin:"FETE"},
+    {word:"RELOU",hint:"Quelqu'un de pénible, une situation pesante",origin:"LOURD"},
+    {word:"KEUF",hint:"Un policier, en argot",origin:"FLIC"},
+    {word:"REUM",hint:"La mère, la maman",origin:"MERE"},
+    {word:"CIMER",hint:"Pour remercier quelqu'un",origin:"MERCI"},
+    {word:"VENER",hint:"Être en colère, irrité",origin:"NERVE"},
+    {word:"REUP",hint:"Le père, le papa",origin:"PERE"},
+    {word:"KEUM",hint:"Un garçon, un type",origin:"MEC"},
+    {word:"REUBEU",hint:"Désigne une personne d'origine arabe",origin:"ARABE"},
+    {word:"CHELOU",hint:"Quelque chose de bizarre, de suspect",origin:"LOUCHE"},
+    {word:"CHANME",hint:"Quelque chose de très bien, d'impressionnant",origin:"MECHAN"},
+    {word:"CAILLRA",hint:"Les jeunes de la rue, la 'racaille'",origin:"RACAILLE"},
+    {word:"LAISSE",hint:"'Laisse béton' = laisse tomber. Quel mot cache BÉTON ?",origin:"SALLE"},
+  ];
+  const q = WORDS[qIdx];
+  document.getElementById('q-counter-p').textContent = `Question ${qIdx+1} / ${WORDS.length}`;
+  document.getElementById('hint-text-p').textContent = q.hint;
+  document.getElementById('hint-sub-p').textContent = `${q.word.length} lettre${q.word.length>1?'s':''} · Quel est le mot verlan ?`;
+
+  const grid = document.getElementById('answers-grid-p');
+  grid.innerHTML = opts.map((o, i) => `
+    <button class="answer-btn ${COLORS[i]}" onclick="submitAnswer('${o}', ${questionStart})">
+      ${SHAPES[i]} ${o}
+    </button>`).join('');
+
+  startTimerPlayer(questionStart);
+}
+
+function startTimerPlayer(questionStart) {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - questionStart) / 1000;
+    const left = Math.max(0, MAX_TIME - elapsed);
+    document.getElementById('timer-bar-p').style.width = (left / MAX_TIME * 100) + '%';
+    if (left <= 0) {
+      clearInterval(timerInterval);
+      if (!hasAnswered) {
+        document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+      }
+    }
+  }, 100);
+}
+
+window.submitAnswer = async function(answer, questionStart) {
+  if (hasAnswered) return;
+  hasAnswered = true;
+  clearInterval(timerInterval);
+  document.querySelectorAll('.answer-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent.trim().endsWith(answer)) b.classList.add('selected');
+  });
+  await set(ref(db, `games/${PIN}/answers/${playerId}`), {
+    answer,
+    timestamp: Date.now()
+  });
+}
+
+function showReveal(pts, correctAnswer, qIdx) {
+  const CONTEXTS = [
+    "L'un des mots verlan les plus répandus — passé dans le français courant.",
+    "'C'est ouf !' — tellement lexicalisé qu'il figure dans certains dictionnaires.",
+    "Utilisé bien au-delà des cités, symbole de la diffusion grand public du verlan.",
+    "'T'es relou' — intégré au français standard, y compris chez les adultes.",
+    "Créé pour parler de la police sans être compris : la fonction cryptique du verlan.",
+    "Avec REUP (père), fait partie du vocabulaire familial verlanisé des cités.",
+    "Un des rares mots verlan positifs — sa diffusion illustre la récupération grand public.",
+    "'Je suis trop véner' — verlan émotionnel très courant.",
+    "Pendant de REUM — verlanisation systématique du vocabulaire familial.",
+    "Pendant masculin de MEUF — l'un des binômes verlan les plus utilisés.",
+    "Terme identitaire fort — illustre comment le verlan construit une appartenance communautaire.",
+    "'C'est chelou' — utilisé par toutes les générations, exemple parfait de lexicalisation.",
+    "'Méchant' devient positif en verlan, comme 'bad' en anglais argotique.",
+    "Mot emblématique du lexique des cités, chargé politiquement.",
+    "Popularisé par Renaud en 1977, l'un des premiers verlan médiatisés.",
+  ];
+
+  showOnly('answered-panel');
+  const correct = pts > 0;
+  document.getElementById('answer-feedback').innerHTML = correct
+    ? `<div class="result-correct"><div class="result-icon">✓</div><div class="result-pts">+${pts} pts</div><div class="result-msg">Bonne réponse !</div></div>`
+    : `<div class="result-wrong"><div class="result-icon">✗</div><div class="result-pts">+0 pts</div><div class="result-msg">La réponse était : ${correctAnswer}</div></div>`;
+
+  document.getElementById('total-score-display').textContent = myScore;
+  document.getElementById('context-text').textContent = CONTEXTS[qIdx] || '';
+}
+
+function showFinal(players) {
+  showOnly('final-panel');
+  if (!players) return;
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  const myRank = sorted.findIndex(([id]) => id === playerId) + 1;
+  const total = sorted.length;
+  const rankEmoji = myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : `#${myRank}`;
+  const finalScore = players[playerId]?.score || 0;
+  document.getElementById('final-rank').textContent = rankEmoji;
+  document.getElementById('final-score').textContent = `${finalScore} pts`;
+  document.getElementById('final-msg').textContent =
+    myRank === 1 ? 'Bravo, tu es le champion du verlan !' :
+    myRank <= 3 ? `Podium ! ${myRank}e sur ${total} joueurs.` :
+    `${myRank}e sur ${total} — bien joué !`;
+}
+</script>
+</body>
+</html>
