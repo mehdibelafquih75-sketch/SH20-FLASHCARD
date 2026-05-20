@@ -101,8 +101,8 @@ input[type=text]::placeholder{color:#888780}
   <div class="sub">Mode Kahoot — Sois le plus rapide !</div>
 
   <div class="panel" id="join-panel">
-    <input type="text" id="pin-input" placeholder="Code PIN (6 chiffres)" maxlength="6" inputmode="numeric">
-    <input type="text" id="name-input" placeholder="Ton prénom" maxlength="20">
+    <input type="text" id="pin-input" placeholder="Code PIN (6 chiffres)" maxlength="6" inputmode="numeric" style="display:none">
+    <input type="text" id="name-input" placeholder="Ton prénom" maxlength="20" autocomplete="given-name">
     <button class="btn" onclick="joinGame()">Rejoindre</button>
     <div class="error" id="error-msg"></div>
   </div>
@@ -186,7 +186,14 @@ const MAX_TIME = 20;
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const params = new URLSearchParams(location.search);
-if (params.get('pin')) document.getElementById('pin-input').value = params.get('pin');
+const pinFromUrl = params.get('pin');
+if (pinFromUrl) {
+  document.getElementById('pin-input').value = pinFromUrl;
+  // PIN dans l'URL → on cache le champ, juste le prénom suffit
+} else {
+  // Pas de PIN dans l'URL → on affiche le champ PIN
+  document.getElementById('pin-input').style.display = 'block';
+}
 
 let PIN='', playerId='', playerName='', myScore=0;
 let timerInterval=null, hasAnswered=false, gameListener=null;
@@ -195,7 +202,7 @@ window.joinGame = async function() {
   PIN = document.getElementById('pin-input').value.trim();
   playerName = document.getElementById('name-input').value.trim();
   const err = document.getElementById('error-msg');
-  if (!PIN || PIN.length!==6) { err.textContent='Entre un code PIN à 6 chiffres.'; return; }
+  if (!PIN || PIN.length!==6) { err.textContent='Code PIN invalide. Scanne le QR code ou entre le PIN.'; return; }
   if (!playerName) { err.textContent='Entre ton prénom.'; return; }
   const snap = await get(ref(db, `games/${PIN}`));
   if (!snap.exists()) { err.textContent='Partie introuvable. Vérifie le PIN.'; return; }
