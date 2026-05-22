@@ -171,15 +171,26 @@ const gameRef = ref(db, `games/${PIN}`);
 let currentQ = 0, timerInterval = null, players = {}, answersListener = null;
 
 async function init() {
-  await set(gameRef, { pin: PIN, phase: 'lobby', currentQ: -1, questionStart: 0, players: {} });
+  // 1. On affiche le PIN et l'URL immédiatement sur l'écran de l'animateur
   document.getElementById('pin-display').textContent = PIN;
   const playerUrl = `${location.origin}${location.pathname.replace('animateur.html','joueur.html')}?pin=${PIN}`;
   document.getElementById('join-url').innerHTML = `Joueurs → <strong>${playerUrl}</strong>`;
-  onValue(ref(db, `games/${PIN}/players`), snap => {
-    players = snap.val() || {};
-    updatePlayersLive();
-    document.getElementById('player-count').textContent = `${Object.keys(players).length} joueur(s) connecté(s)`;
-  });
+
+  try {
+    // 2. Ensuite, on envoie les données à Firebase
+    await set(gameRef, { pin: PIN, phase: 'lobby', currentQ: -1, questionStart: 0, players: {} });
+    
+    // 3. On écoute l'arrivée des joueurs
+    onValue(ref(db, `games/${PIN}/players`), snap => {
+      players = snap.val() || {};
+      updatePlayersLive();
+      document.getElementById('player-count').textContent = `${Object.keys(players).length} joueur(s) connecté(s)`;
+    });
+  } catch (error) {
+    // S'il y a une erreur Firebase, on l'affiche dans la console
+    console.error("Erreur de connexion à Firebase :", error);
+    document.getElementById('join-url').innerHTML = `<span style="color:#e21b3c;">Erreur de base de données (voir console)</span>`;
+  }
 }
 
 function updatePlayersLive() {
