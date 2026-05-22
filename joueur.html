@@ -101,7 +101,8 @@ input[type=text]::placeholder{color:#888780}
   <div class="sub">Mode Kahoot — Sois le plus rapide !</div>
 
   <div class="panel" id="join-panel">
-    <input type="text" id="pin-input" placeholder="Code PIN (6 chiffres)" maxlength="6" inputmode="numeric" style="display:none">
+    <div style="text-align:center;font-size:14px;color:#AFA9EC;margin-bottom:16px">Entre le code affiché par l'animateur</div>
+    <input type="text" id="pin-input" placeholder="Code PIN (6 chiffres)" maxlength="6" inputmode="numeric">
     <input type="text" id="name-input" placeholder="Ton prénom" maxlength="20" autocomplete="given-name">
     <button class="btn" onclick="joinGame()">Rejoindre</button>
     <div class="error" id="error-msg"></div>
